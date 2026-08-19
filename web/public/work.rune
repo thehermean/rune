@@ -1,0 +1,9 @@
+<!-- rune v1 · one task per line · press ? for shortcuts + the quick-add grammar -->
+# Welcome to Rune
+
+- [ ] Press c to add a task, then type a few words and hit Enter ^t-w1
+- [ ] Click a task to open its inspector and set dates, priority, tags ^t-w2
+- [ ] This one has a due date and a priority — click to see #welcome @home !! due:2026-07-04 ^t-w3
+  - [ ] Break a task into smaller steps with Shift+Enter ^t-w5
+- [ ] Press the question-mark key for all shortcuts and capture tips ^t-w4
+- [x] A finished task — turn on Hide done in the top bar to tidy up ^t-w6

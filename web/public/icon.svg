@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Rune">
+  <!-- Dark canvas. Full-bleed so the mark reads on any maskable safe area. -->
+  <rect width="512" height="512" fill="#07080a"/>
+  <!-- A rune-like glyph: a stem with an angular head, evoking both an "R"
+       and a carved mark. Monochrome accent stroke on the dark field. -->
+  <g fill="none" stroke="#57c1ff" stroke-width="34" stroke-linecap="round" stroke-linejoin="round">
+    <!-- vertical stem -->
+    <path d="M176 120 V392"/>
+    <!-- bowl: out to the right and back to the stem -->
+    <path d="M176 120 H300 a68 68 0 0 1 0 136 H176"/>
+    <!-- leg: kicks down-right from the join -->
+    <path d="M256 256 L344 392"/>
+  </g>
+</svg>

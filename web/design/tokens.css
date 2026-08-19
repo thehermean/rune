@@ -1,0 +1,109 @@
+/* Rune design tokens — LOCKED (BRIEF §4).
+ *
+ * These are the single source of truth for color, type, spacing, radius, and
+ * motion. Components reference var(--token) only; no hard-coded values.
+ *
+ * Theme model: dark is the default (variables on :root). Light is a DESIGNED
+ * SIBLING applied via [data-theme="light"], never an auto-invert. The store
+ * sets data-theme on <html>.
+ */
+
+:root {
+  /* --- Color: dark (default) --- */
+  --canvas: #07080a;
+  --surface: #0d0d0d;
+  --elevated: #121212;
+  --ink: #f4f4f6;
+  --body: #cdcdcd;
+  --mute: #9c9c9d;
+  --faint: #85868a; /* nudged lighter to clear WCAG 4.5:1 on --canvas */
+  --hairline: rgba(255, 255, 255, 0.08);
+  --accent: #57c1ff;
+  --accent-ink: #57c1ff; /* accent used as TEXT — the bright accent reads fine on the dark canvas */
+  --accent-soft: rgba(87, 193, 255, 0.15);
+  --danger: #c2706a;
+
+  /* --- Type families --- */
+  --font-body: "iA Writer Duo", "IBM Plex Mono", ui-monospace, monospace;
+  --font-chrome: "Inter", system-ui, sans-serif;
+
+  /* --- Type scale (size / weight / line-height / tracking) --- */
+  --size-page-title: 28px;
+  --weight-page-title: 600;
+  --lh-page-title: 1.2;
+  --track-page-title: -0.02em;
+
+  --size-section: 20px;
+  --weight-section: 600;
+  --lh-section: 1.3;
+  --track-section: -0.01em;
+
+  --size-row: 15px;
+  --weight-row: 400;
+  --lh-row: 1.45;
+
+  --size-meta: 13px;
+  --weight-meta: 400;
+  --lh-meta: 1.4;
+
+  --size-caption: 12px;
+  --weight-caption: 500;
+  --lh-caption: 1;
+
+  /* --- Spacing scale (4px base) --- */
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 8px;
+  --space-4: 12px;
+  --space-5: 16px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 48px;
+  --space-9: 96px;
+
+  /* Derived layout constants. */
+  --row-pad-y: 8px;
+  --checkbox-gap: 12px;
+  --section-gap: 24px;
+
+  /* --- Radius --- */
+  --radius-row: 6px;
+  --radius-card: 10px;
+
+  /* --- Motion --- */
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur-state: 120ms;
+  --dur-expand: 180ms;
+  --dur-reflow: 200ms;
+  --dur-strike: 160ms;
+}
+
+[data-theme="light"] {
+  --canvas: #ffffff;
+  --surface: #fbfbfa;
+  --elevated: #ffffff;
+  --ink: #1a1a1a;
+  --body: #2c2c2c;
+  --mute: #6b6b6b;
+  --faint: #6e6e70; /* darkened to clear WCAG 4.5:1 on white */
+  --hairline: rgba(0, 0, 0, 0.08);
+  --accent: #57c1ff;
+  --accent-ink: #1670a8; /* accent used as TEXT on white — darkened to clear WCAG 4.5:1 */
+  --accent-soft: rgba(87, 193, 255, 0.15);
+  --danger: #c2706a;
+}
+
+/* prefers-reduced-motion: nothing animates. The motion durations collapse to 0
+ * so transitions and the check-off strike resolve instantly. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-state: 0ms;
+    --dur-expand: 0ms;
+    --dur-reflow: 0ms;
+    --dur-strike: 0ms;
+  }
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

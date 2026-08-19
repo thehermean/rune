@@ -1,0 +1,2126 @@
+/* Rune app layout + component styling.
+ *
+ * Everything references design tokens (tokens.css). Anti-clutter rules are
+ * enforced here: no chips/pills, no zebra, 1px hairlines only, chrome reveals on
+ * hover/:focus-within, overdue is a date-only tint.
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--body);
+  font-family: var(--font-body);
+  font-size: var(--size-row);
+  line-height: var(--lh-row);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-variant-numeric: tabular-nums;
+}
+
+kbd {
+  font-family: var(--font-chrome);
+  font-size: var(--size-caption);
+  font-weight: 500;
+  padding: 1px 6px;
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+  color: var(--mute);
+}
+
+/* --- App shell --- */
+
+.rune-app {
+  max-width: 820px;
+  margin: 0 auto;
+  /* Left/right safe-area insets keep the topbar AND content clear of the notch
+   * in landscape (env() = 0px on desktop, so the base var(--space-6) is kept). */
+  padding:
+    0
+    calc(var(--space-6) + env(safe-area-inset-right, 0px))
+    0
+    calc(var(--space-6) + env(safe-area-inset-left, 0px));
+  min-height: 100%;
+}
+
+/* Shared header height: drives the topbar box AND the quick-add's sticky `top`
+ * from ONE source so they can never desync. (Was a magic top:56px on the bar.)
+ *
+ * In a standalone iOS PWA the page renders under the status bar/notch
+ * (viewport-fit=cover + black-translucent). --topbar-h is the TOTAL box height:
+ * 56px of content PLUS the top safe-area inset, so the bar reserves room for the
+ * status bar and every consumer (sticky quick-add `top`, etc.) stays aligned.
+ * On any non-notched surface (all desktops) env() resolves to its 0px fallback,
+ * so --topbar-h collapses back to a plain 56px and nothing changes. */
+:root {
+  --topbar-h: calc(56px + env(safe-area-inset-top, 0px));
+}
+
+.rune-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: var(--topbar-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  /* border-box: the top inset lives in padding-top so the opaque background
+   * fills up behind the translucent status bar, while the 56px of usable
+   * content height is preserved (height − padding-top − padding-bottom). */
+  padding: calc(var(--space-4) + env(safe-area-inset-top, 0px)) 0 var(--space-4);
+  background: var(--canvas);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.rune-topbar-left,
+.rune-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.rune-wordmark {
+  font-family: var(--font-chrome);
+  font-weight: 600;
+  font-size: var(--size-section);
+  letter-spacing: var(--track-section);
+  color: var(--ink);
+}
+
+.rune-viewswitch {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.rune-viewtab {
+  font-family: var(--font-chrome);
+  font-size: var(--size-meta);
+  color: var(--mute);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-row);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  transition: color var(--dur-state) var(--ease), background var(--dur-state) var(--ease);
+}
+.rune-viewtab:hover {
+  color: var(--body);
+}
+.rune-viewtab.is-active {
+  color: var(--ink);
+  background: var(--accent-soft);
+}
+/* Quiet count after a tab label ("Today ·3"): mute ink, tabular numerals, no
+   badge shape, ABSENT when zero (rendered conditionally). Never --danger. */
+.rune-viewtab-count {
+  margin-left: var(--space-2);
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+}
+
+.rune-filename {
+  font-size: var(--size-caption);
+  color: var(--faint);
+}
+
+.rune-chrome-btn {
+  font-family: var(--font-chrome);
+  font-size: var(--size-meta);
+  color: var(--mute);
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-row);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  transition: color var(--dur-state) var(--ease), border-color var(--dur-state) var(--ease);
+}
+.rune-chrome-btn:hover {
+  color: var(--ink);
+  border-color: var(--mute);
+}
+/* Active filter toggle (e.g. "Hide done" while completed tasks are hidden). */
+.rune-chrome-btn.is-active {
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+
+/* Secondary topbar actions: inline on desktop, collapsed into ⋯ on mobile. */
+.rune-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+/* The ⋯ overflow control is desktop-hidden; a media query reveals it ≤640px. */
+.rune-overflow {
+  display: none;
+  position: relative;
+}
+.rune-overflow-btn {
+  line-height: 1;
+}
+/* A quiet, hairline, elevated popover — calm, no shouting. */
+.rune-overflow-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 40;
+  min-width: 176px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2);
+  background: var(--elevated);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  box-shadow:
+    0 12px 32px -12px rgba(0, 0, 0, 0.6),
+    0 4px 10px -6px rgba(0, 0, 0, 0.45);
+  animation: rune-card-in var(--dur-state) var(--ease);
+}
+/* An invisible full-screen scrim so a tap outside dismisses the popover. */
+.rune-overflow-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  background: transparent;
+}
+.rune-overflow-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  font-family: var(--font-chrome);
+  font-size: var(--size-meta);
+  text-align: left;
+  color: var(--body);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-row);
+  padding: var(--space-3);
+  cursor: pointer;
+  transition: color var(--dur-state) var(--ease), background var(--dur-state) var(--ease);
+}
+.rune-overflow-item:hover {
+  color: var(--ink);
+  background: var(--surface);
+}
+
+/* --- Quick-add --- */
+
+.rune-quickadd {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 9;
+  padding: var(--space-4) 0;
+  background: var(--canvas);
+}
+
+.rune-quickadd-input {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: var(--size-row);
+  line-height: var(--lh-row);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-row);
+  padding: var(--space-3) var(--space-4);
+  outline: none;
+  transition: border-color var(--dur-state) var(--ease);
+}
+.rune-quickadd-input::placeholder {
+  color: var(--faint);
+}
+.rune-quickadd-input:focus {
+  border-color: var(--accent);
+}
+
+.rune-quickadd-preview {
+  margin-top: var(--space-2);
+  padding: 0 var(--space-4);
+  font-size: var(--size-meta);
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Document filter (the `/` bar) ---
+   A THINNER sibling of the quick-add bar: same input language (hairline border,
+   soft radius, body font), but meta-size type, mute ink, tighter padding, and no
+   background fill or shadow. It exists only while revealed; collapsed = nothing
+   on screen (the query resets on collapse). */
+
+.rune-filter {
+  padding: 0 0 var(--space-3);
+}
+.rune-filter-input {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: var(--size-meta);
+  line-height: var(--lh-meta);
+  color: var(--mute);
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-row);
+  padding: var(--space-2) var(--space-4);
+  outline: none;
+  transition: border-color var(--dur-state) var(--ease), color var(--dur-state) var(--ease);
+}
+.rune-filter-input::placeholder {
+  color: var(--faint);
+}
+.rune-filter-input:focus {
+  border-color: var(--mute);
+  color: var(--body);
+}
+
+/* --- Document / rows --- */
+
+.rune-main {
+  padding: var(--space-5) 0 var(--space-9);
+}
+
+.rune-doc {
+  display: flex;
+  flex-direction: column;
+}
+
+.rune-section {
+  font-family: var(--font-chrome);
+  font-size: var(--size-section);
+  font-weight: var(--weight-section);
+  line-height: var(--lh-section);
+  letter-spacing: var(--track-section);
+  color: var(--ink);
+  margin: var(--section-gap) 0 var(--space-3);
+}
+
+.rune-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--checkbox-gap);
+  padding: var(--row-pad-y) var(--space-3);
+  border-radius: var(--radius-row);
+  cursor: default;
+  transition: background var(--dur-state) var(--ease);
+}
+.rune-row:hover {
+  background: var(--surface);
+}
+.rune-row.is-selected {
+  background: var(--accent-soft);
+}
+
+.rune-row-title {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--body);
+}
+
+.rune-row.is-struck .rune-row-title,
+.rune-row.state-cancelled .rune-row-title {
+  color: var(--faint);
+}
+.rune-row.state-cancelled .rune-row-text {
+  text-decoration: line-through;
+  text-decoration-color: var(--faint);
+}
+
+/* Check-off micro-delight: a strike drawn left-to-right over ~160ms. */
+.rune-row.state-done .rune-row-text {
+  color: var(--faint);
+}
+.rune-strike {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 1px;
+  width: 100%;
+  background: var(--faint);
+  transform-origin: left center;
+  animation: rune-strike var(--dur-strike) var(--ease) forwards;
+}
+@keyframes rune-strike {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* --- Checkbox --- */
+
+.rune-checkbox {
+  flex: 0 0 auto;
+  font-family: var(--font-body);
+  font-size: var(--size-row);
+  line-height: 1;
+  color: var(--mute);
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color var(--dur-state) var(--ease);
+}
+.rune-checkbox:hover {
+  color: var(--body);
+}
+.rune-checkbox.is-done {
+  color: var(--accent-ink);
+}
+.rune-checkbox.is-doing {
+  color: var(--accent-ink);
+}
+.rune-checkbox.is-cancelled,
+.rune-checkbox.is-deferred {
+  color: var(--faint);
+}
+
+/* --- Meta (quiet inline mute-ink, never chips) --- */
+
+.rune-meta {
+  flex: 0 0 auto;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  font-size: var(--size-meta);
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+}
+.rune-meta-tag,
+.rune-meta-ctx {
+  color: var(--mute);
+}
+.rune-meta-prio {
+  color: var(--body);
+  letter-spacing: 0.05em;
+}
+.rune-meta-date {
+  color: var(--mute);
+}
+.rune-meta-date.is-overdue {
+  color: var(--danger);
+}
+.rune-meta-soft {
+  color: var(--faint);
+}
+.rune-meta-recur,
+.rune-meta-marker {
+  color: var(--faint);
+}
+
+/* --- Notes / raw lines / blanks --- */
+
+.rune-note {
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--size-meta);
+  line-height: var(--lh-meta);
+  color: var(--mute);
+}
+.rune-rawtext {
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--size-meta);
+  color: var(--faint);
+}
+.rune-blank {
+  height: var(--space-3);
+}
+
+.rune-wave2-note,
+.rune-waiting {
+  font-size: var(--size-caption);
+  color: var(--faint);
+  margin: var(--space-2) var(--space-3);
+}
+.is-blocked {
+  opacity: 0.55;
+}
+
+/* --- Empty state: one calm line + one keyboard hint --- */
+
+.rune-empty {
+  padding: var(--space-9) var(--space-3);
+  text-align: center;
+}
+.rune-empty-line {
+  color: var(--body);
+  margin: 0 0 var(--space-3);
+}
+.rune-empty-hint {
+  color: var(--mute);
+  font-size: var(--size-meta);
+  margin: 0;
+}
+
+/* --- Detail card / palette (dimmed overlays) --- */
+
+@keyframes rune-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes rune-card-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+
+.rune-detail-backdrop,
+.rune-palette-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  animation: rune-backdrop-in var(--dur-state) var(--ease);
+}
+.rune-detail-backdrop {
+  align-items: center;
+  padding: var(--space-6);
+}
+.rune-palette-backdrop {
+  align-items: flex-start;
+  padding-top: 12vh;
+}
+
+.rune-detail,
+.rune-palette {
+  width: min(540px, 92vw);
+  background: var(--elevated);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  padding: var(--space-6) var(--space-6) var(--space-5);
+  box-shadow:
+    0 24px 64px -16px rgba(0, 0, 0, 0.66),
+    0 6px 16px -8px rgba(0, 0, 0, 0.5);
+}
+.rune-detail {
+  max-height: 86vh;
+  overflow-y: auto;
+  animation: rune-card-in var(--dur-expand) var(--ease);
+}
+
+/* Header: editable title + id, with a quiet close affordance. */
+.rune-detail-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin: 0 0 var(--space-5);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--hairline);
+}
+.rune-detail-head-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.rune-detail-close {
+  flex: 0 0 auto;
+  font-family: var(--font-chrome);
+  font-size: var(--size-meta);
+  line-height: 1;
+  color: var(--faint);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-row);
+  padding: var(--space-2);
+  cursor: pointer;
+  transition: color var(--dur-state) var(--ease), background var(--dur-state) var(--ease);
+}
+.rune-detail-close:hover {
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.rune-detail-title {
+  font-family: var(--font-chrome);
+  font-size: 21px;
+  font-weight: var(--weight-section);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin: 0;
+}
+.rune-detail-id {
+  font-family: var(--font-body);
+  font-size: var(--size-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+  margin: var(--space-2) 0 0;
+}
+.rune-detail-hint,
+.rune-palette-hint,
+.rune-gutter-hint {
+  font-size: var(--size-meta);
+  color: var(--mute);
+  margin: var(--space-4) 0 0;
+}
+
+.rune-gutter {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* --- Comment gutter: quiet threaded cards in the margin (M5) --- */
+
+.rune-comment-thread {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  padding: var(--space-3) var(--space-4);
+  /* @ai gets a thin accent edge, humans a mute edge — a restraint, not a badge. */
+  border-left-width: 2px;
+  transition: border-color var(--dur-state) var(--ease), background var(--dur-state) var(--ease);
+}
+.rune-comment-thread.edge-ai {
+  border-left-color: var(--accent);
+}
+.rune-comment-thread.edge-human {
+  border-left-color: var(--mute);
+}
+
+.rune-comment-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+}
+
+.rune-comment-author {
+  font-size: var(--size-caption);
+  font-weight: var(--weight-caption);
+  color: var(--faint);
+}
+.rune-comment-card.is-ai .rune-comment-author {
+  color: var(--accent-ink);
+}
+
+.rune-comment-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--size-meta);
+  line-height: var(--lh-meta);
+  color: var(--body);
+}
+
+/* Edit-op rendering: insert underlined, delete struck, substitute muted. */
+.rune-op-insert {
+  text-decoration: underline;
+}
+.rune-op-delete {
+  text-decoration: line-through;
+  color: var(--faint);
+}
+.rune-op-substitute {
+  color: var(--mute);
+}
+
+/* Replies sit indented under their root, on the elevated tone. */
+.rune-comment-reply {
+  margin-left: var(--space-4);
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--hairline);
+}
+.rune-comment-reply .rune-comment-card {
+  background: var(--elevated);
+}
+
+/* Resolved-thread toggle: small, quiet, caption-sized. */
+.rune-gutter-resolved {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.rune-gutter-toggle {
+  align-self: flex-start;
+  font-family: var(--font-chrome);
+  font-size: var(--size-caption);
+  font-weight: var(--weight-caption);
+  color: var(--faint);
+  background: transparent;
+  border: none;
+  padding: var(--space-1) 0;
+  cursor: pointer;
+  transition: color var(--dur-state) var(--ease);
+}
+.rune-gutter-toggle:hover {
+  color: var(--mute);
+}
+
+/* --- Row delete control: hidden at rest, revealed on hover/:focus-within --- */
+
+.rune-row-delete {
+  flex: 0 0 auto;
+  font-family: var(--font-chrome);
+  font-size: var(--size-caption);
+  line-height: 1;
+  color: var(--faint);
+  background: transparent;
+  border: none;
+  padding: var(--space-1) var(--space-2);
+  margin-left: var(--space-2);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--dur-state) var(--ease), color var(--dur-state) var(--ease);
+}
+.rune-row:hover .rune-row-delete,
+.rune-row:focus-within .rune-row-delete,
+.rune-row-delete:focus-visible {
+  opacity: 1;
+}
+.rune-row-delete:hover {
+  color: var(--danger);
+}
+
+/* --- Inline row edit --- */
+
+.rune-row.is-editing {
+  background: var(--surface);
+}
+.rune-row-edit-wrap {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.rune-row-edit-input {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: var(--size-row);
+  line-height: var(--lh-row);
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  padding: 0;
+  outline: none;
+}
+.rune-row-edit-preview {
+  font-size: var(--size-meta);
+  line-height: var(--lh-meta);
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Editable detail card fields --- */
+
+.rune-detail-title-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  outline: none;
+  padding: 0 0 var(--space-1);
+  transition: border-color var(--dur-state) var(--ease);
+}
+.rune-detail-title-input:focus {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+
+.rune-detail-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0 0 var(--space-5);
+}
+.rune-detail-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  min-height: 26px;
+}
+.rune-detail-label {
+  flex: 0 0 80px;
+  align-self: flex-start;
+  padding-top: 4px;
+  font-family: var(--font-chrome);
+  font-size: var(--size-meta);
+  color: var(--mute);
+}
+.rune-detail-value {
+  font-size: var(--size-meta);
+  color: var(--body);
+}
+.rune-detail-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--font-body);
+  font-size: var(--size-meta);
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  padding: var(--space-2) 0;
+  outline: none;
+  transition: border-color var(--dur-state) var(--ease);
+}
+.rune-detail-input:focus {
+  border-bottom-color: var(--accent);
+}
+.rune-detail-input::placeholder {
+  color: var(--faint);
+}
+
+.rune-detail-datewrap {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-3);
+}
+.rune-detail-echo {
+  flex: 0 0 auto;
+  font-size: var(--size-caption);
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Segmented pill controls — shared by state, priority, the date quick-chips,
+ * and the recurrence presets. Quiet surface pills; the active one fills with the
+ * soft accent (no borders, no shouting). */
+.rune-detail-state,
+.rune-detail-prio {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.rune-detail-state-opt,
+.rune-detail-prio-opt {
+  font-family: var(--font-body);
+  font-size: var(--size-meta);
+  color: var(--mute);
+  background: var(--surface);
+  border: 1px solid transparent;
+  border-radius: var(--radius-row);
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: color var(--dur-state) var(--ease), background var(--dur-state) var(--ease);
+}
+.rune-detail-state-opt:hover,
+.rune-detail-prio-opt:hover {
+  color: var(--ink);
+  background: var(--elevated);
+}
+.rune-detail-state-opt.is-active,
+.rune-detail-prio-opt.is-active {
+  color: var(--ink);
+  background: var(--accent-soft);
+}
+
+.rune-detail-tags {
+  display: inline-flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.rune-detail-tag {
+  font-family: var(--font-body);
+  font-size: var(--size-meta);
+  color: var(--body);
+  background: var(--surface);
+  border: none;
+  border-radius: var(--radius-row);
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: color var(--dur-state) var(--ease), background var(--dur-state) var(--ease);
+}
+.rune-detail-tag:hover {
+  color: var(--danger);
+  background: var(--elevated);
+}
+.rune-detail-tag-input {
+  flex: 0 1 130px;
+}
+
+.rune-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--hairline);
+}
+.rune-detail-delete {
+  margin-left: auto;
+}
+.rune-detail-delete:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+/* --- Undo toast: calm, bottom-center, one line + Undo link --- */
+
+.rune-toast {
+  position: fixed;
+  left: 50%;
+  /* Sit above the home indicator in a standalone PWA (env() = 0px elsewhere). */
+  bottom: calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  background: var(--elevated);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+.rune-toast-msg {
+  font-size: var(--size-meta);
+  color: var(--body);
+}
+.rune-toast-undo {
+  font-family: var(--font-chrome);
+  font-size: var(--size-meta);
+  color: var(--accent-ink);
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.rune-toast-undo:hover {
+  text-decoration: underline;
+}
+.rune-toast-dismiss {
+  font-size: var(--size-caption);
+  color: var(--faint);
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color var(--dur-state) var(--ease);
+}
+.rune-toast-dismiss:hover {
+  color: var(--mute);
+}
+
+/* ===========================================================================
+ * Wave 4 — Share, AI review, attachments, Source view.
+ * Quiet, hairlines, hidden at rest. No chips: attachments are mute-ink rows.
+ * ========================================================================= */
+
+/* --- Drop affordance: shown ONLY during dragover (is-dropping) --- */
+
+.rune-row.is-dropping {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--accent-soft);
+}
+.rune-row-drop {
+  flex: 0 0 auto;
+  margin-left: var(--space-2);
+  font-family: var(--font-chrome);
+  font-size: var(--size-caption);
+  letter-spacing: var(--track-section);
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+.rune-detail.is-dropping {
+  box-shadow: inset 0 0 0 1px var(--accent-soft);
+}
+
+/* --- Row drag handle: hidden at rest, revealed on hover/:focus-within (fine
+   pointers only) — mirrors the other row-chrome glyphs. --- */
+.rune-row-drag {
+  flex: 0 0 auto;
+  font-family: var(--font-chrome);
+  font-size: var(--size-caption);
+  line-height: 1;
+  color: var(--faint);
+  background: transparent;
+  border: none;
+  padding: var(--space-1) var(--space-2);
+  margin-left: var(--space-2);
+  cursor: grab;
+  opacity: 0;
+  transition: opacity var(--dur-state) var(--ease), color var(--dur-state) var(--ease);
+}
+.rune-row:hover .rune-row-drag,
+.rune-row:focus-within .rune-row-drag,
+.rune-row-drag:focus-visible {
+  opacity: 1;
+}
+.rune-row-drag:active {
+  cursor: grabbing;
+}
+
+/* --- Reorder insertion line: a 2px accent rule at the top ('before') or bottom
+   ('after') edge of the hovered drop-target row. --- */
+.rune-row.is-drop-before,
+.rune-row.is-tdrop-before {
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+.rune-row.is-drop-after,
+.rune-row.is-tdrop-after {
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+.rune-row.is-dragging {
+  opacity: 0.5;
+}
+
+/* Touch reorder grip: a persistent ~44px drag target on coarse pointers.
+   Pointer Events (HTML5 DnD never fires on touch); touch-action:none lets a
+   drag from the grip move without the page scrolling under it. */
+.rune-row-drag-touch {
+  flex: 0 0 auto;
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  margin-left: var(--space-1);
+  font-family: var(--font-chrome);
+  font-size: var(--size-row);
+  line-height: 1;
+  color: var(--faint);
+  background: transparent;
+  border: none;
+  cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.rune-row-drag-touch:active {
+  cursor: grabbing;
+  color: var(--accent-ink);
+}
+
+/* --- Attachments section in the detail card: quiet mute-ink rows --- */
+
+.rune-detail-attachments {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--hairline);
+}
+.rune-attach-list {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.rune-attach-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--size-meta);
+  color: var(--mute);
+}
+.rune-attach-open,
+.rune-attach-rel {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-body);
+  font-size: var(--size-meta);
+  color: var(--body);
+  background: transparent;
+  border: none;
+  padding: 0;
+  text-align: left;
+}
+.rune-attach-open {
+  cursor: pointer;
+  transition: color var(--dur-state) var(--ease);
+}
+.rune-attach-open:hover {
+  color: var(--accent-ink);
+  text-decoration: underline;
+}
+.rune-attach-hint {
+  flex: 0 0 auto;
+  font-size: var(--size-caption);
+  color: var(--faint);
+}
+.rune-attach-remove {
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-family: var(--font-chrome);
+  font-size: var(--size-caption);
+  line-height: 1;
+  color: var(--faint);
+  background: transparent;
+  border: none;
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--dur-state) var(--ease), color var(--dur-state) var(--ease);
+}
+.rune-attach-row:hover .rune-attach-remove,
+.rune-attach-row:focus-within .rune-attach-remove {
+  opacity: 1;
+}
+.rune-attach-remove:hover {
+  color: var(--danger);
+}
+
+/* --- Source view: full-height raw .rune editor (calm, mono, hairline frame) --- */
+
+.rune-source {
+  display: flex;
+  flex-direction: column;
+  min-height: 60vh;
+}
+.rune-source-editor {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 60vh;
+  resize: vertical;
+  background: var(--canvas);
+  color: var(--body);
+  font-family: var(--font-body);
+  font-size: var(--size-row);
+  line-height: var(--lh-row);
+  tab-size: 2;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
+  outline: none;
+  white-space: pre;
+  overflow: auto;
+  transition: border-color var(--dur-state) var(--ease);
+}
+.rune-source-editor:focus {
+  border-color: var(--mute);
+}
+.rune-source-stub {
+  font-size: var(--size-meta);
+  color: var(--mute);
+  padding: var(--space-6) 0;
+}
+
+/* --- Shared modal chrome: Share dialog + AI Review (centered card) --- */
+
+.rune-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(1px);
+}
+.rune-modal {
+  width: min(600px, 92vw);
+  max-height: 84vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background: var(--elevated);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  padding: var(--space-6);
+}
+.rune-modal-title {
+  font-family: var(--font-chrome);
+  font-size: var(--size-section);
+  font-weight: var(--weight-section);
+  color: var(--ink);
+  margin: 0;
+}
+.rune-modal-stub,
+.rune-modal-hint {
+  font-size: var(--size-meta);
+  color: var(--mute);
+  margin: 0;
+}
+.rune-modal-error {
+  font-size: var(--size-meta);
+  color: var(--danger);
+  margin: 0;
+}
+.rune-modal-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+/* A copyable link row: quiet monospace value + a small copy control. */
+.rune-modal-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--size-meta);
+}
+.rune-modal-link-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-body);
+  color: var(--body);
+}
+/* The AI-review paste/diff surfaces reuse the Source editor frame. */
+.rune-modal-paste {
+  width: 100%;
+  min-height: 30vh;
+  resize: vertical;
+  background: var(--canvas);
+  color: var(--body);
+  font-family: var(--font-body);
+  font-size: var(--size-meta);
+  line-height: var(--lh-row);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-row);
+  padding: var(--space-3);
+  outline: none;
+  white-space: pre;
+  overflow: auto;
+}
+.rune-modal-paste:focus {
+  border-color: var(--mute);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rune-attach-open,
+  .rune-attach-remove,
+  .rune-source-editor,
+  .rune-modal-paste {
+    transition: none;
+  }
+}
+
+/* ===========================================================================
+ * Wave 5 — the point-and-click inspector.
+ * State control, pickers, contexts, dependency-by-title, and comment authoring.
+ * Quiet, token-based, hairlines only. No chips/pills; chrome reveals on hover.
+ * ========================================================================= */
+
+/* --- Row inspect affordance: a small comment/edit glyph, hidden at rest --- */
+
+.rune-row-inspect,
+.rune-row-edit {
+  flex: 0 0 auto;
+  font-family: var(--font-chrome);
+  font-size: var(--size-caption);
+  line-height: 1;
+  color: var(--faint);
+  background: transparent;
+  border: none;
+  padding: var(--space-1) var(--space-2);
+  margin-left: var(--space-2);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--dur-state) var(--ease), color var(--dur-state) var(--ease);
+}
+.rune-row:hover .rune-row-inspect,
+.rune-row:focus-within .rune-row-inspect,
+.rune-row-inspect:focus-visible,
+.rune-row-edit:focus-visible {
+  opacity: 1;
+}
+.rune-row-inspect:hover,
+.rune-row-edit:hover {
+  color: var(--accent-ink);
+}
+
+/* --- Comments section: a quiet labelled divider above the gutter + composer --- */
+
+.rune-detail-comments {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--hairline);
+}
+.rune-detail-section-label {
+  display: block;
+  font-family: var(--font-chrome);
+  font-size: var(--size-meta);
+  color: var(--mute);
+  margin-bottom: var(--space-2);
+}
+
+/* --- Pickers (DatePicker / RecurrencePicker / DependencyPicker) --- */
+
+.rune-picker-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.rune-recur-wrap,
+.rune-dep-wrap {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.rune-recur-wrap {
+  flex-direction: row;
+  align-items: baseline;
+}
+
+.rune-recur-rolling {
+  flex: 0 0 auto;
+  font-family: var(--font-body);
+  font-size: var(--size-meta);
+  color: var(--mute);
+  background: var(--surface);
+  border: 1px solid transparent;
+  border-radius: var(--radius-row);
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: color var(--dur-state) var(--ease), background var(--dur-state) var(--ease);
+}
+.rune-recur-rolling:hover {
+  color: var(--ink);
+  background: var(--elevated);
+}
+.rune-recur-rolling.is-active {
+  color: var(--ink);
+  background: var(--accent-soft);
+}
+
+/* Dependency-by-title: current deps as quiet rows + a calm add <select>. */
+.rune-dep-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.rune-dep-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--size-meta);
+  color: var(--body);
+}
+.rune-dep-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rune-dep-remove {
+  flex: 0 0 auto;
+  font-family: var(--font-chrome);
+  font-size: var(--size-caption);
+  line-height: 1;
+  color: var(--faint);
+  background: transparent;
+  border: none;
+  padding: 0 var(--space-1);
+  cursor: pointer;
+  transition: color var(--dur-state) var(--ease);
+}
+.rune-dep-remove:hover {
+  color: var(--danger);
+}
+.rune-dep-add {
+  align-self: flex-start;
+  font-family: var(--font-body);
+  font-size: var(--size-meta);
+  color: var(--mute);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  padding: var(--space-1) 0;
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--dur-state) var(--ease);
+}
+.rune-dep-add:focus {
+  border-bottom-color: var(--accent);
+}
+.rune-dep-empty {
+  font-size: var(--size-caption);
+  color: var(--faint);
+}
+
+/* --- Comment composer + reply/resolve controls --- */
+
+.rune-comment-composer {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.rune-comment-reply-composer {
+  margin-top: var(--space-2);
+}
+.rune-comment-input {
+  width: 100%;
+  resize: vertical;
+  font-family: var(--font-body);
+  font-size: var(--size-meta);
+  line-height: var(--lh-meta);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-row);
+  padding: var(--space-2) var(--space-3);
+  outline: none;
+  transition: border-color var(--dur-state) var(--ease);
+}
+.rune-comment-input::placeholder {
+  color: var(--faint);
+}
+.rune-comment-input:focus {
+  border-color: var(--accent);
+}
+.rune-comment-composer-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+.rune-comment-send,
+.rune-comment-cancel {
+  font-family: var(--font-chrome);
+  font-size: var(--size-meta);
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color var(--dur-state) var(--ease);
+}
+.rune-comment-send {
+  color: var(--accent-ink);
+}
+.rune-comment-send:hover {
+  text-decoration: underline;
+}
+.rune-comment-send:disabled {
+  color: var(--faint);
+  cursor: default;
+  text-decoration: none;
+}
+.rune-comment-cancel {
+  color: var(--faint);
+}
+.rune-comment-cancel:hover {
+  color: var(--mute);
+}
+
+/* Per-thread Reply / Resolve actions: quiet, caption-sized, no badge. */
+.rune-comment-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+.rune-comment-action {
+  font-family: var(--font-chrome);
+  font-size: var(--size-caption);
+  font-weight: var(--weight-caption);
+  color: var(--faint);
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color var(--dur-state) var(--ease);
+}
+.rune-comment-action:hover {
+  color: var(--mute);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rune-row-edit,
+  .rune-row-inspect,
+  .rune-detail-state-opt,
+  .rune-recur-rolling,
+  .rune-dep-add,
+  .rune-dep-remove,
+  .rune-comment-input,
+  .rune-comment-send,
+  .rune-comment-cancel,
+  .rune-comment-action {
+    transition: none;
+  }
+}
+
+/* ===== First-sprint UX: focus ring, palette hint, sync dot, help sheet ===== */
+
+/* Visually-hidden utility: present in the accessibility tree (screen readers,
+   the aria-live region) but painted nowhere. The classic clip pattern. */
+.rune-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Visible keyboard focus (WCAG 2.4.7). :focus-visible so pointer users see nothing. */
+:where(a, button, [role='button'], [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Quick-add ⌘K palette hint, pinned to the input's right edge. */
+.rune-quickadd-field {
+  position: relative;
+}
+.rune-quickadd-field .rune-quickadd-input {
+  padding-right: 3.5rem;
+}
+.rune-qa-palette {
+  position: absolute;
+  right: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-chrome);
+  font-size: var(--size-caption);
+  line-height: 1;
+  color: var(--faint);
+  background: var(--elevated);
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+  padding: 3px 6px;
+  cursor: pointer;
+  transition: color var(--dur-state) var(--ease), border-color var(--dur-state) var(--ease);
+}
+.rune-qa-palette:hover {
+  color: var(--ink);
+  border-color: var(--mute);
+}
+
+/* Sync-health dot on the topbar Sync button. Quiet at rest; danger only on error. */
+.rune-sync-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: var(--space-2);
+  background: var(--faint);
+  vertical-align: middle;
+}
+.rune-sync-dot.is-syncing { background: var(--accent); }
+.rune-sync-dot.is-error { background: var(--danger); }
+
+/* Help sheet: shortcuts + capture grammar (reuses .rune-modal chrome). */
+.rune-help-section {
+  margin-top: var(--space-5);
+}
+.rune-help-heading {
+  font-family: var(--font-chrome);
+  font-size: var(--size-meta);
+  color: var(--mute);
+  margin: 0 0 var(--space-3);
+}
+.rune-help-grid {
+  display: grid;
+  grid-template-columns: minmax(110px, auto) 1fr;
+  gap: var(--space-2) var(--space-5);
+  align-items: baseline;
+}
+.rune-help-key {
+  font-family: var(--font-chrome);
+  font-size: var(--size-caption);
+  color: var(--ink);
+  white-space: nowrap;
+}
+.rune-help-token {
+  font-family: var(--font-body);
+}
+.rune-help-desc {
+  font-size: var(--size-meta);
+  color: var(--body);
+}
+
+/* ===========================================================================
+ * Responsive / touch — mobile reflow of the SAME surface (no parallel UI).
+ * Two orthogonal axes: viewport width (≤640px collapses chrome + full-height
+ * sheet) and pointer type (coarse = touch: persistent row chrome, 44px hits,
+ * 16px inputs to stop iOS zoom). Desktop (>640px, fine pointer) is untouched.
+ * ========================================================================= */
+
+/* --- Narrow viewports: collapse the secondary topbar chrome behind ⋯ --- */
+@media (max-width: 640px) {
+  .rune-app {
+    /* Tighter gutter on phones, but still clear the notch in landscape. */
+    padding:
+      0
+      calc(var(--space-4) + env(safe-area-inset-right, 0px))
+      0
+      calc(var(--space-4) + env(safe-area-inset-left, 0px));
+  }
+
+  /* The inline desktop actions row hides; the ⋯ overflow control appears. */
+  .rune-topbar-actions {
+    display: none;
+  }
+  .rune-overflow {
+    display: block;
+  }
+
+  /* Keep wordmark · view switch · quick-add · Hide done. Let the view switch
+     scroll horizontally rather than overflow / wrap the topbar row. */
+  .rune-topbar {
+    gap: var(--space-3);
+  }
+  .rune-topbar-left {
+    gap: var(--space-3);
+    min-width: 0; /* allow the scrollable switch to shrink instead of pushing */
+    flex: 1 1 auto;
+  }
+  .rune-viewswitch {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none; /* Firefox: hide the scrollbar, keep the scroll */
+    -webkit-overflow-scrolling: touch;
+  }
+  .rune-viewswitch::-webkit-scrollbar {
+    display: none;
+  }
+  .rune-viewtab {
+    white-space: nowrap;
+    flex: 0 0 auto;
+  }
+  /* The filename is quiet chrome; drop it on mobile to keep the bar for work. */
+  .rune-filename {
+    display: none;
+  }
+
+  /* Rows: on a narrow screen the trailing controls plus the non-shrinking meta
+     cluster would starve the title to one word per line (and the meta would
+     collide with it). Let the row wrap and send the meta to its own full-width
+     line, indented under the title — so the title keeps the same usable column
+     a meta-less row already gets, and its tags/date read cleanly beneath. */
+  .rune-row {
+    flex-wrap: wrap;
+    row-gap: var(--space-1);
+  }
+  /* flex-basis:0 lets the title share line 1 with the trailing controls (it
+     grows to fill the leftover, wrapping its own text) instead of claiming the
+     whole line and shoving the controls onto a line of their own. */
+  .rune-row-title {
+    flex-basis: 0;
+  }
+  .rune-meta {
+    order: 1;
+    flex-basis: 100%;
+    padding-left: var(--space-8);
+  }
+
+  /* --- Mobile inspector: a near-full-height bottom sheet, not a centered card. */
+  .rune-detail-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .rune-detail {
+    width: 100%;
+    max-width: none;
+    height: min(92dvh, 100%);
+    max-height: 92dvh;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom: none;
+    /* Respect the notch / home indicator on all four inner edges. */
+    padding:
+      calc(var(--space-6) + env(safe-area-inset-top))
+      calc(var(--space-5) + env(safe-area-inset-right))
+      calc(var(--space-5) + env(safe-area-inset-bottom))
+      calc(var(--space-5) + env(safe-area-inset-left));
+    animation: rune-sheet-in var(--dur-expand) var(--ease);
+  }
+}
+
+/* The sheet slides up from the bottom (fades + translates). */
+@keyframes rune-sheet-in {
+  from { opacity: 0; transform: translateY(4%); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rune-detail { animation: none; }
+}
+
+/* --- Coarse pointers (touch): reachable chrome + comfortable hit areas --- */
+@media (pointer: coarse) {
+  /* Row edit (✏), inspect (✎) and delete (✕) are opacity:0-until-hover on fine
+     pointers — unreachable by touch. Make them PERSISTENTLY visible, quiet +
+     reduced. (✏ is the touch entry point for the inline row editor, which has no
+     double-click / `e`-key trigger on a coarse pointer.) */
+  .rune-row-edit,
+  .rune-row-inspect,
+  .rune-row-delete {
+    opacity: 0.5;
+  }
+
+  /* 44px minimum hit target on the interactive glyphs, WHILE the visible glyph
+     stays hairline-small (padding grows the target, not the mark). */
+  .rune-row-edit,
+  .rune-row-inspect,
+  .rune-row-delete,
+  .rune-detail-close,
+  .rune-toast-dismiss,
+  .rune-attach-remove,
+  .rune-dep-remove {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* View tabs: keep the label small but give a 44px-tall comfortable target. */
+  .rune-viewtab {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* The checkbox sits at the row baseline; a min-height box would break the
+     baseline alignment, so grow its hit area with padding + a negative margin
+     that cancels the visual shift. 44px target, glyph unchanged. */
+  .rune-checkbox {
+    display: inline-flex;
+    min-width: 44px;
+    justify-content: center;
+    margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-3));
+    padding: var(--space-4) var(--space-3);
+  }
+
+  /* 16px inputs stop iOS Safari from auto-zooming the viewport on focus. */
+  .rune-quickadd-input,
+  .rune-detail-input,
+  .rune-detail-title-input,
+  .rune-row-edit-input,
+  .rune-comment-input,
+  .rune-dep-add,
+  .rune-modal-paste,
+  .rune-source-editor {
+    font-size: 16px;
+  }
+}
+
+/* --- Selection action bar: fixed at the bottom for a 2+ multi-select. Bulk
+   priority / due / add-tag over the whole set (see SelectionBar.tsx). Done/open,
+   delete and indent stay in the ⌘K palette. --- */
+.rune-selbar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: calc(100vw - 2 * var(--space-4));
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
+  font-family: var(--font-chrome);
+  font-size: var(--size-caption);
+  color: var(--ink);
+  overflow-x: auto;
+}
+.rune-selbar-count {
+  color: var(--faint);
+  white-space: nowrap;
+}
+.rune-selbar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.rune-selbar-label {
+  color: var(--faint);
+  margin-right: var(--space-1);
+}
+.rune-selbar-btn {
+  flex: 0 0 auto;
+  font: inherit;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-row);
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--dur-state) var(--ease), color var(--dur-state) var(--ease),
+    border-color var(--dur-state) var(--ease);
+}
+.rune-selbar-btn:hover {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.rune-selbar-btn:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+.rune-selbar-clear {
+  color: var(--faint);
+  margin-left: var(--space-1);
+}
+.rune-selbar-input {
+  flex: 1 1 auto;
+  min-width: 180px;
+  font-family: inherit;
+  font-size: 16px; /* >=16px so mobile Safari never zooms on focus */
+  color: var(--ink);
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-row);
+  padding: var(--space-1) var(--space-2);
+}
+.rune-selbar-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+/* === Notes view ============================================================ */
+.rune-notes {
+  display: flex;
+  align-items: stretch;
+  min-height: calc(100vh - var(--topbar-h, 56px));
+}
+.rune-notes-sidebar {
+  flex: 0 0 clamp(220px, 28%, 320px);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-3);
+  border-right: 1px solid var(--hairline);
+}
+.rune-notes-side-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.rune-notes-heading {
+  font-family: var(--font-chrome);
+  font-size: var(--size-section);
+  font-weight: var(--weight-section);
+  letter-spacing: var(--track-section);
+}
+.rune-notes-side-actions { display: flex; gap: var(--space-1); }
+.rune-notes-search,
+.rune-notes-newfolder {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 16px; /* >=16px so mobile Safari never zooms on focus */
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-row);
+  padding: var(--space-2) var(--space-3);
+}
+.rune-notes-search:focus,
+.rune-notes-newfolder:focus { outline: none; border-color: var(--accent); }
+.rune-notes-list { display: flex; flex-direction: column; gap: var(--space-4); overflow-y: auto; }
+.rune-notes-group { display: flex; flex-direction: column; gap: 1px; }
+.rune-notes-folder {
+  font-family: var(--font-chrome);
+  font-size: var(--size-caption);
+  color: var(--faint);
+  text-transform: uppercase;
+  letter-spacing: var(--track-section);
+  padding: var(--space-2) var(--space-2) var(--space-1);
+}
+.rune-notes-empty-list, .rune-notes-empty { color: var(--faint); padding: var(--space-3); }
+.rune-note-row {
+  display: flex; flex-direction: column; gap: 2px;
+  width: 100%; text-align: left; cursor: pointer; color: var(--ink);
+  background: transparent; border: none; border-radius: var(--radius-row);
+  padding: var(--space-2) var(--space-3);
+}
+.rune-note-row:hover { background: var(--accent-soft); }
+.rune-note-row.is-active { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
+.rune-note-row-head { display: flex; align-items: baseline; gap: var(--space-2); }
+.rune-note-title { flex: 1 1 auto; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rune-note-date { flex: 0 0 auto; font-size: var(--size-caption); color: var(--faint); }
+.rune-note-snippet { font-size: var(--size-caption); color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rune-note-pin { font-size: var(--size-caption); }
+
+.rune-notes-editor { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; padding: var(--space-4) var(--space-5); }
+.rune-note-head { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-3); }
+.rune-note-back { display: none; }
+.rune-note-folder-sel {
+  font-family: var(--font-chrome); font-size: var(--size-caption);
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--hairline); border-radius: var(--radius-row); padding: 2px var(--space-2);
+}
+.rune-note-status { font-family: var(--font-chrome); font-size: var(--size-caption); color: var(--faint); min-width: 60px; }
+.rune-note-status.is-saved { color: var(--accent-ink); }
+.rune-note-status.is-conflict, .rune-note-status.is-error { color: var(--danger); }
+.rune-note-head-actions { margin-left: auto; display: flex; align-items: center; gap: var(--space-2); }
+.rune-seg { display: inline-flex; border: 1px solid var(--hairline); border-radius: var(--radius-row); overflow: hidden; }
+.rune-seg-btn { font-family: var(--font-chrome); font-size: var(--size-caption); background: transparent; color: var(--faint); border: none; padding: var(--space-1) var(--space-3); cursor: pointer; }
+.rune-seg-btn.is-on { background: var(--accent-soft); color: var(--accent-ink); }
+.rune-note-del:hover { color: var(--danger); }
+.rune-note-textarea {
+  flex: 1 1 auto; min-height: 50vh; width: 100%; resize: none;
+  font-family: var(--font-body); font-size: var(--size-row); line-height: var(--lh-row); color: var(--ink);
+  background: transparent; border: none; outline: none; padding: 0;
+}
+.rune-note-render { flex: 1 1 auto; overflow-y: auto; }
+
+/* Rendered markdown */
+.rune-md { line-height: 1.55; color: var(--ink); }
+.rune-md-h1 { font-size: 1.6em; font-weight: 600; margin: 0.6em 0 0.3em; }
+.rune-md-h2 { font-size: 1.3em; font-weight: 600; margin: 0.6em 0 0.3em; }
+.rune-md-h3 { font-size: 1.1em; font-weight: 600; margin: 0.6em 0 0.3em; }
+.rune-md-h4, .rune-md-h5, .rune-md-h6 { font-weight: 600; margin: 0.6em 0 0.3em; }
+.rune-md-p { margin: 0.5em 0; }
+.rune-md-ul, .rune-md-ol { margin: 0.4em 0; padding-left: 1.4em; }
+.rune-md-ul li, .rune-md-ol li { margin: 0.15em 0; }
+.rune-md-check { list-style: none; margin-left: -1.4em; display: flex; align-items: flex-start; gap: var(--space-2); }
+.rune-md-box { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 2px; border: 1.5px solid var(--faint); border-radius: 4px; cursor: pointer; }
+.rune-md-check.is-checked .rune-md-box { background: var(--accent); border-color: var(--accent); }
+.rune-md-check.is-checked .rune-md-checktext { color: var(--faint); text-decoration: line-through; }
+.rune-md-quote { border-left: 3px solid var(--accent); margin: 0.5em 0; padding: 0.2em 0 0.2em var(--space-4); color: var(--faint); }
+.rune-md-pre { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius-card); padding: var(--space-3); overflow-x: auto; }
+.rune-md-code { background: var(--surface); border-radius: 4px; padding: 1px 4px; font-family: var(--font-mono, "IBM Plex Mono", monospace); font-size: 0.9em; }
+.rune-md-hr { border: none; border-top: 1px solid var(--hairline); margin: 1em 0; }
+.rune-md-link { color: var(--accent-ink); }
+.rune-md-img { max-width: 100%; border-radius: var(--radius-card); }
+.rune-wikilink { color: var(--accent-ink); border-bottom: 1px dashed var(--accent); cursor: pointer; }
+.rune-tag { color: var(--accent-ink); }
+
+@media (max-width: 720px) {
+  .rune-notes.has-open .rune-notes-sidebar { display: none; }
+  .rune-notes:not(.has-open) .rune-notes-editor { display: none; }
+  .rune-notes-sidebar { flex-basis: auto; width: 100%; border-right: none; }
+  .rune-note-back { display: inline-flex; }
+}
+
+/* Notes formatting toolbar */
+.rune-note-toolbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px;
+  padding: var(--space-2) 0; margin-bottom: var(--space-3);
+  border-bottom: 1px solid var(--hairline);
+}
+.rune-note-toolbar button {
+  min-width: 30px; height: 28px; padding: 0 var(--space-2);
+  font-family: var(--font-chrome); font-size: var(--size-caption);
+  color: var(--ink); background: transparent; border: 1px solid transparent;
+  border-radius: var(--radius-row); cursor: pointer;
+}
+.rune-note-toolbar button:hover { background: var(--accent-soft); color: var(--accent-ink); }
+.rune-tb-sep { width: 1px; height: 18px; background: var(--hairline); margin: 0 var(--space-1); }
+
+/* Notes Phase 3: wiki-link autocomplete, tags, backlinks */
+.rune-note-editwrap { position: relative; flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+.rune-ac {
+  position: absolute; z-index: 50; min-width: 180px; max-width: 340px; max-height: 240px; overflow-y: auto;
+  margin: 0; padding: 4px; list-style: none;
+  background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius-card);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28); font-size: var(--size-caption);
+}
+.rune-ac-item { padding: var(--space-2) var(--space-3); border-radius: var(--radius-row); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rune-ac-item.is-on, .rune-ac-item:hover { background: var(--accent-soft); color: var(--accent-ink); }
+.rune-ac-new { color: var(--faint); }
+.rune-wikilink.is-missing { color: var(--faint); border-bottom-color: var(--faint); }
+.rune-notes-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.rune-tag-chip {
+  font-family: var(--font-chrome); font-size: var(--size-caption); color: var(--accent-ink);
+  background: var(--accent-soft); border: 1px solid transparent; border-radius: 999px; padding: 2px var(--space-2); cursor: pointer;
+}
+.rune-tag-chip:hover { border-color: var(--accent); }
+.rune-tag-chip.is-active { background: var(--accent); color: var(--canvas); }
+.rune-tag-count { opacity: 0.6; }
+.rune-note-pin { font-size: var(--size-caption); }
+.rune-note-backlinks { margin-top: var(--space-5); padding-top: var(--space-4); border-top: 1px solid var(--hairline); }
+.rune-note-backlinks-head { font-family: var(--font-chrome); font-size: var(--size-caption); color: var(--faint); text-transform: uppercase; letter-spacing: var(--track-section); margin-bottom: var(--space-2); }
+.rune-note-backlink { display: block; width: 100%; text-align: left; background: transparent; border: none; color: var(--accent-ink); padding: var(--space-1) 0; cursor: pointer; }
+.rune-note-backlink:hover { text-decoration: underline; }
+
+/* Notes graph view */
+.rune-graph { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.rune-graph-head { display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--hairline); }
+.rune-graph-title { font-family: var(--font-chrome); font-size: var(--size-caption); color: var(--faint); }
+.rune-graph-canvas { flex: 1 1 auto; width: 100%; height: 100%; display: block; }
+
+/* Notes: touch + mobile pass */
+.rune-graph-canvas { touch-action: none; } /* a tap on the graph never scrolls the page */
+@media (pointer: coarse) {
+  .rune-note-toolbar button { min-width: 40px; min-height: 40px; }
+  .rune-note-folder-sel, .rune-seg-btn { min-height: 36px; }
+  .rune-tag-chip { padding: 6px 10px; }
+  .rune-note-row { padding: var(--space-3); }
+  .rune-ac-item { padding: var(--space-3); }
+}
+@media (max-width: 720px) {
+  .rune-notes-editor { padding: var(--space-3) var(--space-4) calc(var(--space-6) + env(safe-area-inset-bottom, 0px)); }
+  .rune-note-head { gap: var(--space-1) var(--space-2); }
+  .rune-note-head-actions { gap: var(--space-1); margin-left: 0; }
+  .rune-graph-head { padding: var(--space-3); }
+  .rune-notes-sidebar { padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* Graph pan/zoom controls */
+.rune-graph-controls { display: flex; align-items: center; gap: 4px; }
+.rune-graph-zoom {
+  width: 28px; height: 28px; line-height: 1;
+  font-family: var(--font-chrome); font-size: var(--size-row);
+  color: var(--ink); background: transparent; border: 1px solid var(--hairline);
+  border-radius: var(--radius-row); cursor: pointer;
+}
+.rune-graph-zoom:hover { background: var(--accent-soft); color: var(--accent-ink); }
+.rune-graph-canvas { cursor: grab; }
+@media (pointer: coarse) { .rune-graph-zoom { width: 40px; height: 40px; } }
+
+/* --- Board (kanban) view -------------------------------------------------- */
+/* A lens over the #board cards: five fixed columns in a horizontally-scrolling
+   row. Cards drag between columns by their grip (touch-action:none) — the column
+   body still scrolls under a touch on the card itself. */
+.rune-board {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+  overflow-x: auto;
+  padding-bottom: var(--space-5);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.rune-board-col {
+  flex: 0 0 auto;
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 160px);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  transition: border-color var(--dur-state) var(--ease), background var(--dur-state) var(--ease);
+}
+.rune-board-col.is-drop {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.rune-board-colhead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--hairline);
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  background: var(--surface);
+  font-family: var(--font-chrome);
+  font-size: var(--size-caption);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+.rune-board-colcount {
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.rune-board-colbody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  min-height: 48px;
+  overflow-y: auto;
+}
+.rune-board-card {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-row);
+  background: var(--elevated);
+  transition: border-color var(--dur-state) var(--ease), opacity var(--dur-state) var(--ease);
+}
+.rune-board-card:hover {
+  border-color: rgba(127, 127, 127, 0.35);
+}
+.rune-board-card.is-dragging {
+  opacity: 0.4;
+}
+.rune-board-grip {
+  flex: 0 0 auto;
+  align-self: stretch;
+  touch-action: none;
+  cursor: grab;
+  border: none;
+  background: none;
+  padding: 0 var(--space-1);
+  color: var(--faint);
+  font-size: 12px;
+  line-height: 1;
+  letter-spacing: -2px;
+}
+.rune-board-grip:active {
+  cursor: grabbing;
+}
+.rune-board-cardbody {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+.rune-board-cardtitle {
+  font-family: var(--font-body);
+  font-size: var(--size-row);
+  line-height: var(--lh-row);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.rune-board-cardmeta {
+  font-size: var(--size-caption);
+}
+.rune-board-cardnext {
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--hairline);
+  font-size: var(--size-meta);
+  line-height: var(--lh-meta);
+  color: var(--body);
+  overflow-wrap: anywhere;
+}
+.rune-board-nextlabel {
+  margin-right: var(--space-1);
+  font-family: var(--font-chrome);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+/* The floating clone that follows the pointer during a drag. */
+.rune-board-ghost {
+  position: fixed;
+  z-index: 100;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  max-width: 220px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-row);
+  background: var(--elevated);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--size-meta);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+@media (max-width: 640px) {
+  .rune-board-col {
+    width: 80vw;
+    max-height: calc(100vh - 200px);
+  }
+}

@@ -1,0 +1,15 @@
+<!-- rune v1 · ids:^t-xxxx · dates:ISO · comments:criticmarkup · anchor-by:id · reply-with:full-raw-doc -->
+# Rune — Q3 @sam updated:2026-06-30
+
+- [/] Ship parser v1 #rune/release !!! due:2026-07-10 ^t-a1b2
+  > hard deadline is the demo; soft-start the grammar Monday
+  - [x] Survey existing formats done:2026-06-30 ^t-a1b3
+  - [/] Draft grammar after:t-a1b3 [grammar](./docs/grammar.md) ^t-a1b4
+    {>> @ai[id=c-01 ts=2026-06-30T10:00Z]: blocks [[t-a1b6]] — sequence it before review. <<}
+  - [ ] Review with @alice after:t-a1b4 [[t-a1b2]] file:./specs/auth.pdf ^t-a1b5
+- [ ] Ship web renderer #rune/release !!! after:t-a1b4 due:2026-07-11 ^t-a1b6
+  - [ ] Raw text endpoint {++ + signed read scope ++} ^t-a1b7
+- [ ] Pay AWS invoice !!! @finance recur!:"every month on the last" due:2026-07-01 ^t-a1b8
+- [-] Evaluate emoji syntax #rune ^t-a1b9
+  > dropped: bad for diff / regex / typing
+- [>] Backlog cleanup #rune scheduled:2026-08-01 ^t-a1c0
