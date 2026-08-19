@@ -1,5 +1,7 @@
 # Rune
 
+**Live: [rune.hermean.org](https://rune.hermean.org)**
+
 Your todo list is **one plain-text file**. The web app, the share link, and any
 LLM are just lenses on it. Anything the app can do, you can do with a text editor
 on a plane.
